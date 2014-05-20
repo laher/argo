@@ -1,5 +1,3 @@
-package ar
-
 /*
    Copyright 2013 Am Laher
 
@@ -15,6 +13,7 @@ package ar
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+package ar
 
 import (
 	"bytes"
@@ -29,63 +28,11 @@ import (
 	"time"
 )
 
-/* example showing ar file entries ...
-!<arch>
-debian-binary   1282478016  0     0     100644  4         `
-2.0
-control.tar.gz  1282478016  0     0     100644  444       `
-.....binary-data.....
-*/
-const (
-	blockSize    = 512
-	headerSize   = 60
-	arHeaderSize = 8
-
-	fileNameSize = 16
-	modTimeSize  = 12
-	uidSize      = 6
-	gidSize      = 6
-	modeSize     = 8
-	sizeSize     = 10
-	magicSize    = 2
-)
-
-var (
-	zeroBlock = make([]byte, headerSize)
-	ErrHeader = errors.New("ar: invalid ar header")
-)
-
 type Reader struct {
 	r   io.Reader
 	err error
 	nb  int64 // number of unread bytes for current file entry
 	pad bool  // whether the file will be padded an extra byte (i.e. if ther's an odd number of bytes in the file)
-}
-
-type Header struct {
-	// Name is the name of the file.
-	// It must be a relative path: it must not start with a drive
-	// letter (e.g. C:) or leading slash, and only forward slashes
-	// are allowed.
-	Name    string
-	ModTime time.Time
-	Uid     int
-	Gid     int
-	Mode    int64
-	Size    int64
-}
-/*
-func (i *Header) IsDir() bool {        // abbreviation for Mode().IsDir()
-	return i.Mode.IsDir()
-}
-*/
-
-type slicer []byte
-
-func (sp *slicer) next(n int) (b []byte) {
-	s := *sp
-	b, *sp = s[0:n], s[n:]
-	return
 }
 
 // NewReader creates a new Reader reading from r.
