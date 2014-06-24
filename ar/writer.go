@@ -17,12 +17,19 @@ package ar
 */
 
 import (
-	"bufio"
 	"fmt"
+	"errors"
 	"io"
-	"log"
-	"os"
 	"strings"
+)
+
+var (
+	ErrWriteTooLong    = errors.New("archive/ar: write too long")
+	ErrFieldTooLong    = errors.New("archive/ar: header field too long")
+	ErrWriteAfterClose = errors.New("archive/ar: write after close")
+	errNameTooLong     = errors.New("archive/ar: name too long")
+	errInvalidHeader   = errors.New("archive/ar: header field too long or contains invalid values")
+	arFileHeader       = "!<arch>\n"
 )
 
 /* example showing ar file entries ...
@@ -32,8 +39,150 @@ debian-binary   1282478016  0     0     100644  4         `
 control.tar.gz  1282478016  0     0     100644  444       `
 .....binary-data.....
 */
+// A Writer provides sequential writing of an ar archive.
+// An ar archive consists of a sequence of files.
+// Call WriteHeader to begin a new file, and then call Write to supply that file's data,
+// writing at most hdr.Size bytes in total.
+type Writer struct {
+	w          io.Writer
+	arFileHeaderWritten   bool
+	err        error
+	nb         int64 // number of unwritten bytes for current file entry
+	pad        bool  // whether the file will be padded an extra byte (i.e. if ther's an odd number of bytes in the file)
+	closed     bool
+}
 
+// NewWriter creates a new Writer writing to w.
+func NewWriter(w io.Writer) *Writer { return &Writer{w: w} }
 
+// Flush finishes writing the current file (optional).
+func (aw *Writer) Flush() error {
+	if aw.nb > 0 {
+		aw.err = fmt.Errorf("archive/tar: missed writing %d bytes", aw.nb)
+		return aw.err
+	}
+	if !aw.arFileHeaderWritten {
+		_, aw.err = aw.w.Write([]byte(arFileHeader))
+		if aw.err != nil {
+			return aw.err
+		}
+		aw.arFileHeaderWritten = true
+	}
+/*
+	n := aw.nb
+	if aw.pad {
+		n += 1
+	}
+	for n > 0 && aw.err == nil {
+		nr := n
+		if nr > blockSize {
+			nr = blockSize
+		}
+		var nw int
+		nw, aw.err = aw.w.Write(zeroBlock[0:nr])
+		n -= int64(nw)
+	}
+	*/
+	aw.nb = 0
+	aw.pad = false
+	return aw.err
+}
+
+// WriteHeader writes hdr and prepares to accept the file's contents.
+// WriteHeader calls Flush if it is not the first header.
+// Calling after a Close will return ErrWriteAfterClose.
+func (aw *Writer) WriteHeader(hdr *Header) error {
+	return aw.writeHeader(hdr)
+}
+
+// WriteHeader writes hdr and prepares to accept the file's contents.
+// WriteHeader calls Flush if it is not the first header.
+// Calling after a Close will return ErrWriteAfterClose.
+func (aw *Writer) writeHeader(hdr *Header) error {
+	if aw.closed {
+		return ErrWriteAfterClose
+	}
+	if aw.err == nil {
+		aw.Flush()
+	}
+	if aw.err != nil {
+		return aw.err
+	}
+	fmodTimestamp := fmt.Sprintf("%d", hdr.ModTime.Unix())
+	//use root (for deb). These files are only for dpkg to extract as root anyway
+	//this behaviour could be made configurable if 'Ar' gets used for anything else beyond .deb creation
+	uid := fmt.Sprintf("%d", hdr.Uid)
+	gid := fmt.Sprintf("%d", hdr.Gid)
+	//Files only atm (not dirs)
+	mode := fmt.Sprintf("10%d", hdr.Mode)
+	size := fmt.Sprintf("%d", hdr.Size)
+	line := fmt.Sprintf("%s%s%s%s%s%s`\n", pad(hdr.Name, 16), pad(fmodTimestamp, 12), pad(gid, 6), pad(uid, 6), pad(mode, 8), pad(size, 10))
+	if _, err := aw.Write([]byte(line)); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (aw *Writer) Write(b []byte) (n int, err error) {
+	if aw.closed {
+		err = ErrWriteAfterClose
+		return
+	}
+	
+	if _, err := aw.w.Write(b); err != nil {
+		aw.err = err
+		return n, err
+	}
+	//0.5.4 bugfix: data section is 2-byte aligned.
+	if len(b) % 2 == 1 {
+		if _, err = aw.w.Write([]byte("\n")); err != nil {
+			aw.err = err
+			return
+		}
+	}
+
+/*
+
+	overwrite := false
+	if int64(len(b)) > aw.nb {
+		b = b[0:aw.nb]
+		overwrite = true
+	}
+
+	n, err = aw.w.Write(b)
+	aw.nb -= int64(n)
+	if err == nil && overwrite {
+		err = ErrWriteTooLong
+		return
+	}
+	aw.err = err
+*/
+	return
+}
+
+// Close closes the ar archive, flushing any unwritten
+// data to the underlying writer.
+func (aw *Writer) Close() error {
+	if aw.err != nil || aw.closed {
+		return aw.err
+	}
+	aw.Flush()
+	aw.closed = true
+	if aw.err != nil {
+		return aw.err
+	}
+/*
+	// trailer: two zero blocks
+	for i := 0; i < 2; i++ {
+		_, aw.err = aw.w.Write(zeroBlock)
+		if aw.err != nil {
+			break
+		}
+	}
+*/
+	return aw.err
+}
+/*
 func Ar(archiveFilename string, items []Archivable) error {
 	// open output file
 	fo, err := os.Create(archiveFilename)
@@ -61,12 +210,6 @@ func Ar(archiveFilename string, items []Archivable) error {
 				if ok {
 					defer cl.Close()
 				}
-				/*
-				finf, err := fi.Stat()
-				if err != nil {
-					return err
-				} else {
-					*/
 					inf, err := item.Header()
 					if err != nil {
 						return err
@@ -99,7 +242,7 @@ func Ar(archiveFilename string, items []Archivable) error {
 	return err
 }
 
-func copyFile(fi io.Reader, fo io.Writer) {
+func copyFile(fi io.Reader, fo io.Writer) error {
 	// make a read buffer
 	r := bufio.NewReader(fi)
 	// make a write buffer
@@ -111,7 +254,7 @@ func copyFile(fi io.Reader, fo io.Writer) {
 		// read a chunk
 		n, err := r.Read(buf)
 		if err != nil && err != io.EOF {
-			panic(err)
+			return err
 		}
 		if n == 0 {
 			break
@@ -119,15 +262,16 @@ func copyFile(fi io.Reader, fo io.Writer) {
 
 		// write a chunk
 		if _, err := w.Write(buf[:n]); err != nil {
-			panic(err)
+			return err
 		}
 	}
 
 	if err := w.Flush(); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
-
+*/
 func pad(value string, length int) string {
 	plen := length - len(value)
 	if plen > 0 {

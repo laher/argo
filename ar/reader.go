@@ -37,16 +37,16 @@ type Reader struct {
 
 // NewReader creates a new Reader reading from r.
 func NewReader(r io.Reader) (*Reader, error) {
-	tr := &Reader{r: r}
+	ar := &Reader{r: r}
 	arHeader := make([]byte, arHeaderSize)
-	_, err := io.ReadFull(tr.r, arHeader)
+	_, err := io.ReadFull(ar.r, arHeader)
 	if err != nil {
 		return nil, err
 	}
 	if string(arHeader) != "!<arch>\n" {
 		return nil, errors.New("ar: Invalid ar file!")
 	}
-	return tr, nil
+	return ar, nil
 }
 
 // skipUnread skips any unread bytes in the existing file entry, as well as any alignment padding.
@@ -194,4 +194,27 @@ func (tr *Reader) readHeader() *Header {
 		tr.pad = false
 	}
 	return hdr
+}
+
+
+// Read reads from the current entry in the tar archive.
+// It returns 0, io.EOF when it reaches the end of that entry,
+// until Next is called to advance to the next entry.
+func (ar *Reader) Read(b []byte) (n int, err error) {
+	if ar.nb == 0 {
+		// file consumed
+		return 0, io.EOF
+	}
+
+	if int64(len(b)) > ar.nb {
+		b = b[0:ar.nb]
+	}
+	n, err = ar.r.Read(b)
+	ar.nb -= int64(n)
+
+	if err == io.EOF && ar.nb > 0 {
+		err = io.ErrUnexpectedEOF
+	}
+	ar.err = err
+	return
 }
