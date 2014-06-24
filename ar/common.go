@@ -5,6 +5,9 @@
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
+
+// Package ar implements access to ar archives. 
+// At this stage it only implements the 'common' format as used for .deb files.
 package ar
 
 import (
@@ -14,29 +17,43 @@ import (
 	"time"
 )
 
-/* example showing ar file entries ...
+/*
+
+Sample ar data showing file entries:
+
 !<arch>
 debian-binary   1282478016  0     0     100644  4         `
 2.0
 control.tar.gz  1282478016  0     0     100644  444       `
 .....binary-data.....
-*/
-const (
-	blockSize    = 512
-	headerSize   = 60
-	arHeaderSize = 8
 
+*/
+
+
+const (
+// the size of a file header
+	headerSize   = 60
+// the length of an 'ar' archive header
+	arHeaderSize = 8
+// the length of the filename header field
 	fileNameSize = 16
+// the length of the modTime header field
 	modTimeSize  = 12
+// the length of the UID header field
 	uidSize      = 6
+// the length of the GID header field
 	gidSize      = 6
+// the length of the Mode header field
 	modeSize     = 8
+// the length of the Size header field
 	sizeSize     = 10
+// the length of the 'magic' number
 	magicSize    = 2
 )
 
 var (
 	zeroBlock = make([]byte, headerSize)
+// error describing an invalid ar file header
 	ErrHeader = errors.New("ar: invalid ar header")
 )
 
