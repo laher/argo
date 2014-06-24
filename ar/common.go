@@ -19,13 +19,13 @@ import (
 
 /*
 
-Sample ar data showing file entries:
+  Sample ar data showing file entries:
 
-!<arch>
-debian-binary   1282478016  0     0     100644  4         `
-2.0
-control.tar.gz  1282478016  0     0     100644  444       `
-.....binary-data.....
+  !<arch>
+  debian-binary   1282478016  0     0     100644  4         `
+  2.0
+  control.tar.gz  1282478016  0     0     100644  444       `
+  .....binary-data.....
 
 */
 
@@ -58,17 +58,19 @@ var (
 )
 
 
+// A Header represents a single header in an ar archive.
+// Some fields may not be populated.
 type Header struct {
 	// Name is the name of the file.
 	// It must be a relative path: it must not start with a drive
 	// letter (e.g. C:) or leading slash, and only forward slashes
 	// are allowed.
-	Name    string
-	ModTime time.Time
-	Uid     int
-	Gid     int
-	Mode    int64
-	Size    int64
+	Name    string    // name of header file entry
+	ModTime time.Time // modified time
+	Uid     int       // user id of owner
+	Gid     int       // group id of owner
+	Mode    int64     // permission and mode bits
+	Size    int64     // length in bytes
 }
 
 type slicer []byte
