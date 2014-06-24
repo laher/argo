@@ -21,6 +21,10 @@ import (
 	"time"
 )
 
+// A Reader provides sequential access to the contents of an ar archive.
+// An ar archive consists of a sequence of files.
+// The Next method advances to the next file in the archive (including the first),
+// and then it can be treated as an io.Reader to access the file's data.
 type Reader struct {
 	r   io.Reader
 	err error
@@ -103,13 +107,14 @@ func (tr *Reader) Next() (*Header, error) {
 	return hdr, tr.err
 }
 
+// NextString reads a string up to a given max length.
+// This is useful for reading the first part of .a files.
 func (tr *Reader) NextString(max int) (string, error) {
 	firstLine := make([]byte, max)
 	n, err := io.ReadFull(tr.r, firstLine)
 	tr.nb -= int64(n)
 	if err != nil {
 		tr.err = err
-		log.Printf("failed to read first line of PKGDEF: %v", err)
 		return "", err
 	}
 	return string(firstLine), nil
