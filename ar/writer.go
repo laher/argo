@@ -16,21 +16,11 @@ import (
 )
 
 var (
-	ErrWriteTooLong    = errors.New("archive/ar: write too long")
-	ErrFieldTooLong    = errors.New("archive/ar: header field too long")
-	ErrWriteAfterClose = errors.New("archive/ar: write after close")
-	errNameTooLong     = errors.New("archive/ar: name too long")
-	errInvalidHeader   = errors.New("archive/ar: header field too long or contains invalid values")
-	arFileHeader       = "!<arch>\n"
+	ErrWriteAfterClose = errors.New("ar: write after close")
+	errNameTooLong     = errors.New("ar: name too long")
+	errInvalidHeader   = errors.New("ar: header field too long or contains invalid values")
 )
 
-/* example showing ar file entries ...
-!<arch>
-debian-binary   1282478016  0     0     100644  4         `
-2.0
-control.tar.gz  1282478016  0     0     100644  444       `
-.....binary-data.....
-*/
 // A Writer provides sequential writing of an ar archive.
 // An ar archive consists of a sequence of files.
 // Call WriteHeader to begin a new file, and then call Write to supply that file's data,
@@ -50,11 +40,11 @@ func NewWriter(w io.Writer) *Writer { return &Writer{w: w} }
 // Flush finishes writing the current file (optional. This is called by writeHeader anyway.)
 func (aw *Writer) Flush() error {
 	if aw.nb > 0 {
-		aw.err = fmt.Errorf("archive/ar: missed writing %d bytes", aw.nb)
+		aw.err = fmt.Errorf("ar: missed writing %d bytes", aw.nb)
 		return aw.err
 	}
 	if !aw.arFileHeaderWritten {
-		_, aw.err = aw.w.Write([]byte(arFileHeader))
+		_, aw.err = aw.w.Write([]byte(ArFileHeader))
 		if aw.err != nil {
 			return aw.err
 		}

@@ -17,18 +17,6 @@ import (
 	"time"
 )
 
-/*
-
-  Sample ar data showing file entries:
-
-  !<arch>
-  debian-binary   1282478016  0     0     100644  4         `
-  2.0
-  control.tar.gz  1282478016  0     0     100644  444       `
-  .....binary-data.....
-
-*/
-
 
 const (
 // the size of a file header
@@ -55,7 +43,18 @@ var (
 	zeroBlock = make([]byte, headerSize)
 // error describing an invalid ar file header
 	ErrHeader = errors.New("ar: invalid ar header")
+	ArFileHeader       = "!<arch>\n"
 )
+
+/*
+Sample ar data showing file entries:
+!<arch>
+debian-binary   1282478016  0     0     100644  4         `
+2.0
+control.tar.gz  1282478016  0     0     100644  444       `
+.....binary-data.....
+*/
+
 
 
 // A Header represents a single header in an ar archive.

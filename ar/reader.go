@@ -40,7 +40,7 @@ func NewReader(r io.Reader) (*Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-	if string(arHeader) != "!<arch>\n" {
+	if string(arHeader) != ArFileHeader {
 		return nil, errors.New("ar: Invalid ar file!")
 	}
 	return ar, nil
