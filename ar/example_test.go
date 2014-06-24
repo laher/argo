@@ -1,11 +1,14 @@
-// Copyright 2013 The Go Authors. All rights reserved.
+// Copyright 2013 Am Laher.
+// This code is adapted from code within the Go tree.
+// See Go's licence information below:
+//
+// Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 package ar_test
 
 import (
-	"github.com/laher/argo-v0/ar"
+	"github.com/laher/argo/ar"
 	"bytes"
 	"fmt"
 	"io"
@@ -20,7 +23,7 @@ func Example() {
 	// Create a buffer to write our archive to.
 	wtr := writer(isFs)
 
-	// Create a new tar archive.
+	// Create a new ar archive.
 	aw := ar.NewWriter(wtr)
 
 	// Add some files to the archive.
@@ -57,7 +60,7 @@ func Example() {
 	for {
 		hdr, err := arr.Next()
 		if err == io.EOF {
-			// end of tar archive
+			// end of ar archive
 			break
 		}
 		if err != nil {
@@ -97,7 +100,7 @@ func reader(isFs bool, w io.Writer) io.Reader {
 		return r
 	} else {
 		buf := w.(*bytes.Buffer)
-		// Open the tar archive for reading.
+		// Open the ar archive for reading.
 		r := bytes.NewReader(buf.Bytes())
 		return r
 	}

@@ -1,18 +1,10 @@
-/*
-   Copyright 2013 Am Laher
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-*/
+// Copyright 2013 Am Laher.
+// This code is adapted from code within the Go tree.
+// See Go's licence information below:
+//
+// Copyright 2009 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
 package ar
 
 import (
@@ -94,7 +86,7 @@ func (tr *Reader) octal(b []byte) int64 {
 	return int64(x)
 }
 
-// Next advances to the next entry in the tar archive.
+// Next advances to the next entry in the ar archive.
 func (tr *Reader) Next() (*Header, error) {
 	var hdr *Header
 	if tr.err == nil {
@@ -197,7 +189,7 @@ func (tr *Reader) readHeader() *Header {
 }
 
 
-// Read reads from the current entry in the tar archive.
+// Read reads from the current entry in the ar archive.
 // It returns 0, io.EOF when it reaches the end of that entry,
 // until Next is called to advance to the next entry.
 func (ar *Reader) Read(b []byte) (n int, err error) {
