@@ -9,9 +9,9 @@
 package ar_test
 
 import (
-	"github.com/laher/argo/ar"
 	"bytes"
 	"fmt"
+	"github.com/laher/argo/ar"
 	"io"
 	"log"
 	"os"
@@ -108,7 +108,7 @@ func reader(isFs bool, w io.Writer) io.Reader {
 
 }
 
-func writer (isFs bool) io.Writer {
+func writer(isFs bool) io.Writer {
 	if isFs {
 		fi, err := os.Create("tmp.ar")
 		if err != nil {
@@ -120,4 +120,3 @@ func writer (isFs bool) io.Writer {
 	}
 
 }
-

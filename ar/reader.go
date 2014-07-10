@@ -41,29 +41,29 @@ func NewReader(r io.Reader) (*Reader, error) {
 		return nil, err
 	}
 	if string(arHeader) != ArFileHeader {
-		return nil, errors.New("ar: Invalid ar file!")
+		return nil, errors.New("ar: Invalid ar file")
 	}
 	return ar, nil
 }
 
 // skipUnread skips any unread bytes in the existing file entry, as well as any alignment padding.
-func (tr *Reader) skipUnread() {
-	nr := tr.nb // number of bytes to skip
-	if tr.pad {
+func (ar *Reader) skipUnread() {
+	nr := ar.nb // number of bytes to skip
+	if ar.pad {
 		nr += int64(1)
-		tr.pad = false
+		ar.pad = false
 	}
-	tr.nb = 0
-	if sr, ok := tr.r.(io.Seeker); ok {
+	ar.nb = 0
+	if sr, ok := ar.r.(io.Seeker); ok {
 		if _, err := sr.Seek(nr, os.SEEK_CUR); err == nil {
 			return
 		}
 	}
 
-	_, tr.err = io.CopyN(ioutil.Discard, tr.r, nr)
+	_, ar.err = io.CopyN(ioutil.Discard, ar.r, nr)
 }
 
-func (tr *Reader) octal(b []byte) int64 {
+func (ar *Reader) octal(b []byte) int64 {
 	// Check for binary format first.
 	if len(b) > 0 && b[0]&0x80 != 0 {
 		var x int64
@@ -86,55 +86,55 @@ func (tr *Reader) octal(b []byte) int64 {
 	}
 	x, err := strconv.ParseUint(string(b), 8, 64)
 	if err != nil {
-		tr.err = err
+		ar.err = err
 	}
 	return int64(x)
 }
 
 // Next advances to the next entry in the ar archive.
-func (tr *Reader) Next() (*Header, error) {
+func (ar *Reader) Next() (*Header, error) {
 	var hdr *Header
-	if tr.err == nil {
-		tr.skipUnread()
+	if ar.err == nil {
+		ar.skipUnread()
 	}
-	if tr.err != nil {
-		return hdr, tr.err
+	if ar.err != nil {
+		return hdr, ar.err
 	}
-	hdr = tr.readHeader()
+	hdr = ar.readHeader()
 	if hdr == nil {
-		return hdr, tr.err
+		return hdr, ar.err
 	}
-	return hdr, tr.err
+	return hdr, ar.err
 }
 
 // NextString reads a string up to a given max length.
 // This is useful for reading the first part of .a files.
-func (tr *Reader) NextString(max int) (string, error) {
+func (ar *Reader) NextString(max int) (string, error) {
 	firstLine := make([]byte, max)
-	n, err := io.ReadFull(tr.r, firstLine)
-	tr.nb -= int64(n)
+	n, err := io.ReadFull(ar.r, firstLine)
+	ar.nb -= int64(n)
 	if err != nil {
-		tr.err = err
+		ar.err = err
 		return "", err
 	}
 	return string(firstLine), nil
 }
 
-func (tr *Reader) readHeader() *Header {
+func (ar *Reader) readHeader() *Header {
 	header := make([]byte, headerSize)
-	if _, tr.err = io.ReadFull(tr.r, header); tr.err != nil {
+	if _, ar.err = io.ReadFull(ar.r, header); ar.err != nil {
 		return nil
 	}
 
 	// Two blocks of zero bytes marks the end of the archive.
 	if bytes.Equal(header, zeroBlock[0:headerSize]) {
-		if _, tr.err = io.ReadFull(tr.r, header); tr.err != nil {
+		if _, ar.err = io.ReadFull(ar.r, header); ar.err != nil {
 			return nil
 		}
 		if bytes.Equal(header, zeroBlock[0:headerSize]) {
-			tr.err = io.EOF
+			ar.err = io.EOF
 		} else {
-			tr.err = ErrHeader // zero block and then non-zero block
+			ar.err = ErrHeader // zero block and then non-zero block
 		}
 		return nil
 	}
@@ -146,29 +146,29 @@ func (tr *Reader) readHeader() *Header {
 	hdr.Name = strings.TrimSpace(string(s.next(fileNameSize)))
 	modTime, err := strconv.Atoi(strings.TrimSpace(string(s.next(modTimeSize))))
 	if err != nil {
-		log.Printf("Error: (%+v)", tr.err)
+		log.Printf("Error: (%+v)", ar.err)
 		log.Printf(" (Header: %+v)", hdr)
 		return nil
 	}
 	hdr.ModTime = time.Unix(int64(modTime), int64(0))
-	hdr.Uid, tr.err = strconv.Atoi(strings.TrimSpace(string(s.next(uidSize))))
-	if tr.err != nil {
-		log.Printf("Error: (%+v)", tr.err)
+	hdr.Uid, ar.err = strconv.Atoi(strings.TrimSpace(string(s.next(uidSize))))
+	if ar.err != nil {
+		log.Printf("Error: (%+v)", ar.err)
 		log.Printf(" (Header: %+v)", hdr)
 		return nil
 	}
 	hdr.Gid, err = strconv.Atoi(strings.TrimSpace(string(s.next(gidSize))))
-	if tr.err != nil {
-		log.Printf("Error: (%+v)", tr.err)
+	if ar.err != nil {
+		log.Printf("Error: (%+v)", ar.err)
 		log.Printf(" (Header: %+v)", hdr)
 		return nil
 	}
 	modeStr := strings.TrimSpace(string(s.next(modeSize)))
-	hdr.Mode, tr.err = strconv.ParseInt(modeStr, 10, 64)
+	hdr.Mode, ar.err = strconv.ParseInt(modeStr, 10, 64)
 	sizeStr := strings.TrimSpace(string(s.next(sizeSize)))
-	hdr.Size, tr.err = strconv.ParseInt(sizeStr, 10, 64)
-	if tr.err != nil {
-		log.Printf("Error: (%+v)", tr.err)
+	hdr.Size, ar.err = strconv.ParseInt(sizeStr, 10, 64)
+	if ar.err != nil {
+		log.Printf("Error: (%+v)", ar.err)
 		log.Printf(" (Header: %+v)", hdr)
 		return nil
 	}
@@ -176,24 +176,23 @@ func (tr *Reader) readHeader() *Header {
 	if magic[0] != 0x60 || magic[1] != 0x0a {
 		log.Printf("Invalid magic Header (%x,%x)", int(magic[0]), int(magic[1]))
 		log.Printf(" (Header: %+v)", hdr)
-		tr.err = ErrHeader
+		ar.err = ErrHeader
 		return nil
 	}
-	if tr.err != nil {
-		log.Printf("Error: (%+v)", tr.err)
+	if ar.err != nil {
+		log.Printf("Error: (%+v)", ar.err)
 		log.Printf(" (Header: %+v)", hdr)
 		return nil
 	}
 
-	tr.nb = hdr.Size
+	ar.nb = hdr.Size
 	if math.Mod(float64(hdr.Size), float64(2)) == float64(1) {
-		tr.pad = true
+		ar.pad = true
 	} else {
-		tr.pad = false
+		ar.pad = false
 	}
 	return hdr
 }
-
 
 // Read reads from the current entry in the ar archive.
 // It returns 0, io.EOF when it reaches the end of that entry,

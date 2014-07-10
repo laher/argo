@@ -9,13 +9,14 @@
 package ar
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 	"io"
 	"strings"
 )
 
 var (
+	//ErrWriteAfterClose shows that a write was attempted after the archive has been closed (and the footer is written)
 	ErrWriteAfterClose = errors.New("ar: write after close")
 	errNameTooLong     = errors.New("ar: name too long")
 	errInvalidHeader   = errors.New("ar: header field too long or contains invalid values")
@@ -26,12 +27,12 @@ var (
 // Call WriteHeader to begin a new file, and then call Write to supply that file's data,
 // writing at most hdr.Size bytes in total.
 type Writer struct {
-	w          io.Writer
-	arFileHeaderWritten   bool
-	err        error
-	nb         int64 // number of unwritten bytes for current file entry
-	pad        bool  // whether the file will be padded an extra byte (i.e. if ther's an odd number of bytes in the file)
-	closed     bool
+	w                   io.Writer
+	arFileHeaderWritten bool
+	err                 error
+	nb                  int64 // number of unwritten bytes for current file entry
+	pad                 bool  // whether the file will be padded an extra byte (i.e. if ther's an odd number of bytes in the file)
+	closed              bool
 }
 
 // NewWriter creates a new Writer writing to w.
@@ -93,7 +94,7 @@ func (aw *Writer) writeHeader(hdr *Header) error {
 		return err
 	}
 	// data section is 2-byte aligned.
-	if hdr.Size % 2 == 1 {
+	if hdr.Size%2 == 1 {
 		aw.pad = true
 	}
 	aw.nb = hdr.Size
