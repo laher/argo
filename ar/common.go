@@ -8,7 +8,8 @@
 
 // Package ar implements access to ar archives.
 // argo only implements the 'common' format as used for .deb files, by GNU ar, and by BSD ar. AIX and Coherent variants are not supported.
-// Note that argo is not currently supporting the workarounds for long filenames as defined by GNU ar or BSD ar. Please get in touch if you require this feature//
+// Note that argo is not currently supporting the workarounds for long filenames as defined by GNU ar or BSD ar. Please get in touch if you require this feature.
+//
 // References:
 //   http://en.wikipedia.org/wiki/Ar_(Unix)
 //   http://linux.die.net/man/1/ar
