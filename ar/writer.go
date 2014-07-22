@@ -33,7 +33,7 @@ type Writer struct {
 	nb                      int64 // number of unwritten bytes for current file entry
 	pad                     bool  // whether the file will be padded an extra byte (i.e. if ther's an odd number of bytes in the file)
 	closed                  bool
-	TerminateFilenamesSlash bool
+	TerminateFilenamesSlash bool // This flag determines whether to terminate filenames with a slash '/' or not. GNU ar uses slashes, whereas .deb files tend not to use them.
 }
 
 // NewWriter creates a new Writer writing to w.
