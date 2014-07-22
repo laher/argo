@@ -12,8 +12,8 @@ package ar
 
 import (
 	"errors"
+	"fmt"
 	"os"
-	"path"
 	"time"
 )
 
@@ -92,14 +92,7 @@ func (fi headerFileInfo) Size() int64        { return fi.h.Size }
 func (fi headerFileInfo) IsDir() bool        { return fi.Mode().IsDir() }
 func (fi headerFileInfo) ModTime() time.Time { return fi.h.ModTime }
 func (fi headerFileInfo) Sys() interface{}   { return fi.h }
-
-// Name returns the base name of the file.
-func (fi headerFileInfo) Name() string {
-	if fi.IsDir() {
-		return path.Base(path.Clean(fi.h.Name))
-	}
-	return path.Base(fi.h.Name)
-}
+func (fi headerFileInfo) Name() string       { return fi.h.Name }
 
 // Mode returns the permission and mode bits for the headerFileInfo.
 func (fi headerFileInfo) Mode() (mode os.FileMode) {
@@ -114,6 +107,9 @@ func (fi headerFileInfo) Mode() (mode os.FileMode) {
 // the file it describes, it may be necessary to modify the Name field
 // of the returned header to provide the full path name of the file.
 func FileInfoHeader(fi os.FileInfo) (*Header, error) {
+	if fi == nil {
+		return nil, fmt.Errorf("File header is nil")
+	}
 	size := fi.Size()
 	h := &Header{
 		Name: fi.Name(),

@@ -9,7 +9,6 @@
 package ar
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -33,6 +32,7 @@ type Reader struct {
 }
 
 // NewReader creates a new Reader reading from r.
+// NewReader automatically reads in the ar file header, and checks it is valid.
 func NewReader(r io.Reader) (*Reader, error) {
 	ar := &Reader{r: r}
 	arHeader := make([]byte, arHeaderSize)
@@ -61,34 +61,6 @@ func (ar *Reader) skipUnread() {
 	}
 
 	_, ar.err = io.CopyN(ioutil.Discard, ar.r, nr)
-}
-
-func (ar *Reader) octal(b []byte) int64 {
-	// Check for binary format first.
-	if len(b) > 0 && b[0]&0x80 != 0 {
-		var x int64
-		for i, c := range b {
-			if i == 0 {
-				c &= 0x7f // ignore signal bit in first byte
-			}
-			x = x<<8 | int64(c)
-		}
-		return x
-	}
-
-	// Removing leading spaces.
-	for len(b) > 0 && b[0] == ' ' {
-		b = b[1:]
-	}
-	// Removing trailing NULs and spaces.
-	for len(b) > 0 && (b[len(b)-1] == ' ' || b[len(b)-1] == '\x00') {
-		b = b[0 : len(b)-1]
-	}
-	x, err := strconv.ParseUint(string(b), 8, 64)
-	if err != nil {
-		ar.err = err
-	}
-	return int64(x)
 }
 
 // Next advances to the next entry in the ar archive.
@@ -126,24 +98,16 @@ func (ar *Reader) readHeader() *Header {
 		return nil
 	}
 
-	// Two blocks of zero bytes marks the end of the archive.
-	if bytes.Equal(header, zeroBlock[0:headerSize]) {
-		if _, ar.err = io.ReadFull(ar.r, header); ar.err != nil {
-			return nil
-		}
-		if bytes.Equal(header, zeroBlock[0:headerSize]) {
-			ar.err = io.EOF
-		} else {
-			ar.err = ErrHeader // zero block and then non-zero block
-		}
-		return nil
-	}
+	//TODO check end of archive
 
 	// Unpack
 	hdr := new(Header)
 	s := slicer(header)
 
 	hdr.Name = strings.TrimSpace(string(s.next(fileNameSize)))
+	if strings.HasSuffix(hdr.Name, "/") {
+		hdr.Name = hdr.Name[:len(hdr.Name)-1]
+	}
 	modTime, err := strconv.Atoi(strings.TrimSpace(string(s.next(modTimeSize))))
 	if err != nil {
 		log.Printf("Error: (%+v)", ar.err)

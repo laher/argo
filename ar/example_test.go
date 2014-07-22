@@ -17,12 +17,9 @@ import (
 	"os"
 )
 
-// change this to true for generating an archive on the Filesystem
-var isFs = false
-
 func Example() {
 	// Create a buffer to write our archive to.
-	wtr := writer(isFs)
+	wtr := new(bytes.Buffer)
 
 	// Create a new ar archive.
 	aw := ar.NewWriter(wtr)
@@ -51,7 +48,10 @@ func Example() {
 	if err := aw.Close(); err != nil {
 		log.Fatalln(err)
 	}
-	rdr := reader(isFs, wtr)
+
+	// Open the ar archive for reading.
+	rdr := bytes.NewReader(wtr.Bytes())
+
 	arr, err := ar.NewReader(rdr)
 	if err != nil {
 		log.Fatalln(err)
@@ -84,39 +84,4 @@ func Example() {
 	// Gonzo
 	// Contents of todo.txt:
 	// Get animal handling licence.
-}
-
-func reader(isFs bool, w io.Writer) io.Reader {
-	if isFs {
-		fi := w.(*os.File)
-		err := fi.Close()
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		r, err := os.Open("tmp.ar")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		return r
-	} else {
-		buf := w.(*bytes.Buffer)
-		// Open the ar archive for reading.
-		r := bytes.NewReader(buf.Bytes())
-		return r
-	}
-
-}
-
-func writer(isFs bool) io.Writer {
-	if isFs {
-		fi, err := os.Create("tmp.ar")
-		if err != nil {
-			log.Fatalln(err)
-		}
-		return fi
-	} else {
-		return new(bytes.Buffer)
-	}
-
 }

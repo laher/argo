@@ -27,12 +27,13 @@ var (
 // Call WriteHeader to begin a new file, and then call Write to supply that file's data,
 // writing at most hdr.Size bytes in total.
 type Writer struct {
-	w                   io.Writer
-	arFileHeaderWritten bool
-	err                 error
-	nb                  int64 // number of unwritten bytes for current file entry
-	pad                 bool  // whether the file will be padded an extra byte (i.e. if ther's an odd number of bytes in the file)
-	closed              bool
+	w                       io.Writer
+	arFileHeaderWritten     bool
+	err                     error
+	nb                      int64 // number of unwritten bytes for current file entry
+	pad                     bool  // whether the file will be padded an extra byte (i.e. if ther's an odd number of bytes in the file)
+	closed                  bool
+	TerminateFilenamesSlash bool
 }
 
 // NewWriter creates a new Writer writing to w.
@@ -85,11 +86,21 @@ func (aw *Writer) writeHeader(hdr *Header) error {
 	fmodTimestamp := fmt.Sprintf("%d", hdr.ModTime.Unix())
 	//use root by default (this is particularly useful for debs).
 	uid := fmt.Sprintf("%d", hdr.Uid)
+	if len(uid) > 6 {
+		return fmt.Errorf("UID too long")
+	}
 	gid := fmt.Sprintf("%d", hdr.Gid)
+	if len(gid) > 6 {
+		return fmt.Errorf("GID too long")
+	}
 	//Files only atm (not dirs)
-	mode := fmt.Sprintf("10%d", hdr.Mode)
+	mode := fmt.Sprintf("100%d", hdr.Mode)
 	size := fmt.Sprintf("%d", hdr.Size)
-	line := fmt.Sprintf("%s%s%s%s%s%s`\n", pad(hdr.Name, 16), pad(fmodTimestamp, 12), pad(gid, 6), pad(uid, 6), pad(mode, 8), pad(size, 10))
+	name := hdr.Name
+	if aw.TerminateFilenamesSlash {
+		name += "/"
+	}
+	line := fmt.Sprintf("%s%s%s%s%s%s`\n", pad(name, 16), pad(fmodTimestamp, 12), pad(gid, 6), pad(uid, 6), pad(mode, 8), pad(size, 10))
 	if _, err := aw.Write([]byte(line)); err != nil {
 		return err
 	}
