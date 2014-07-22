@@ -7,7 +7,12 @@
 // license that can be found in the LICENSE file.
 
 // Package ar implements access to ar archives.
-// At this stage it only implements the 'common' format as used for .deb files.
+// argo only implements the 'common' format as used for .deb files, by GNU ar, and by BSD ar. AIX and Coherent variants are not supported.
+// Note that argo is not currently supporting the workarounds for long filenames as defined by GNU ar or BSD ar. Please get in touch if you require this feature//
+// References:
+//   http://en.wikipedia.org/wiki/Ar_(Unix)
+//   http://linux.die.net/man/1/ar
+//   http://www.freebsd.org/cgi/man.cgi?query=ar&sektion=5&apropos=0&manpath=FreeBSD+9.3-RELEASE
 package ar
 
 import (
