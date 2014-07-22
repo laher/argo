@@ -11,4 +11,4 @@ Note that argo is not currently supporting either workaround for long filenames 
 
 Please see [godoc for documentation](http://godoc.org/github.com/laher/argo/ar), including [an example](http://godoc.org/github.com/laher/argo/ar#example-package) and references.
 
-This library has been tested and checked using `go vet`, `go fmt`, `go test -cover`, [errcheck](https://github.com/kisielk/errcheck) and [golint](https://github.com/golang/lint/golint).  See [gocover for test coverage](http://gocover.io/_badge/github.com/laher/argo/ar).
+This library has been tested and checked using `go vet`, `go fmt`, `go test -cover`, [errcheck](https://github.com/kisielk/errcheck) and [golint](https://github.com/golang/lint/golint).  See [gocover for test coverage](http://gocover.io/github.com/laher/argo/ar) - ![Coverage Status](http://gocover.io/_badge/github.com/laher/argo/ar).
